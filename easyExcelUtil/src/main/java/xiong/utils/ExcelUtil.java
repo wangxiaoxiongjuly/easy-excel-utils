@@ -10,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 import xiong.exception.ExcelException;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -144,11 +143,7 @@ public class ExcelUtil {
     private static OutputStream getOutputStream(String fileName, HttpServletResponse response, ExcelTypeEnum excelTypeEnum) throws ExcelException{
         //创建本地文件
         String filePath = fileName + excelTypeEnum.getValue();
-        File dbfFile = new File(filePath);
         try {
-            if (!dbfFile.exists() || dbfFile.isDirectory()) {
-                dbfFile.createNewFile();
-            }
             fileName = new String(filePath.getBytes(), "ISO-8859-1");
             response.addHeader("Content-Disposition", "filename=" + fileName);
             return response.getOutputStream();
