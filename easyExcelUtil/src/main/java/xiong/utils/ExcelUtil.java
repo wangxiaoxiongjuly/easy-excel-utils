@@ -22,6 +22,7 @@ import java.util.List;
  * 基于easyExcel的开源框架，poi版本3.17
  * BeanCopy ExcelException 属于自定义数据，属于可自定义依赖
  * 工具类尽可能还是需要减少对其他java的包的依赖
+ * @author wenxuan.wang
  */
 public class ExcelUtil {
     /**
@@ -100,15 +101,22 @@ public class ExcelUtil {
                     getOutputStream(fileName, response, excelTypeEnum), excelTypeEnum, true, new WriterHandler07<>(classType));
             Sheet sheet = new Sheet(1, 0, classType);
             sheet.setSheetName(sheetName);
-            writer.write(list, sheet);
-            writer.finish();
-        //其实也可以专门调03版的样式，或者直接套用
+            try {
+                writer.write(list, sheet);
+            } finally {
+                writer.finish();
+            }
+            //其实也可以专门调03版的样式，或者直接套用
         } else if(excelTypeEnum == ExcelTypeEnum.XLS ){
             ExcelWriterFactory writer = new ExcelWriterFactory(getOutputStream(fileName, response,excelTypeEnum), excelTypeEnum);
             Sheet sheet = new Sheet(1, 0, classType);
             sheet.setSheetName(sheetName);
-            writer.write(list, sheet);
-            writer.finish();
+            try {
+                writer.write(list, sheet);
+            } finally {
+                writer.finish();
+                writer.close();
+            }
         }
 
     }
@@ -138,9 +146,8 @@ public class ExcelUtil {
         String filePath = fileName + excelTypeEnum.getValue();
         File dbfFile = new File(filePath);
         try {
-            if (!dbfFile.exists() || dbfFile.isDirectory() || dbfFile.createNewFile()) {
-                //并发情况下的存在的串行逻辑没有进行多线程判断
-                throw new ExcelException("文件已经存在");
+            if (!dbfFile.exists() || dbfFile.isDirectory()) {
+                dbfFile.createNewFile();
             }
             fileName = new String(filePath.getBytes(), "ISO-8859-1");
             response.addHeader("Content-Disposition", "filename=" + fileName);
@@ -158,6 +165,9 @@ public class ExcelUtil {
     private static ExcelReader getReader(MultipartFile excel,
                                          ExcelListener excelListener) throws ExcelException{
         String fileName = excel.getOriginalFilename();
+        if (fileName == null ) {
+            throw new ExcelException("文件格式错误！");
+        }
         if (!fileName.toLowerCase().endsWith(ExcelTypeEnum.XLS.getValue()) && !fileName.toLowerCase().endsWith(ExcelTypeEnum.XLSX.getValue())) {
             throw new ExcelException("文件格式错误！");
         }

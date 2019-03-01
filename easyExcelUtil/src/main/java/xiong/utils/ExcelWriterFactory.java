@@ -44,4 +44,12 @@ public class ExcelWriterFactory extends ExcelWriter {
             //do something
         }
     }
+
+    public void close(){
+        try {
+            outputStream.close();
+        } catch (IOException e) {
+            //do something
+        }
+    }
 }
