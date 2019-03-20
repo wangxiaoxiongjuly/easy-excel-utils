@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>xiong</groupId>
-    <artifactId>easyExcelUtil</artifactId>
+    <artifactId>easy-excel-util</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <dependencies>
