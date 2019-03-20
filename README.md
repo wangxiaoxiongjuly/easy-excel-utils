@@ -28,7 +28,7 @@ my-web中 EasyExcelUtilController
 List<ExportTestModel> list = ExcelUtil.readExcel(files.get(0),ExportTestModel.class);
 `
 
-### CellFontFormat
+## CellFontFormat
 
 - fontName 
 
@@ -56,7 +56,7 @@ font.setFontHeightInPoints(value.cellFont().fontHeightInPoints());
 font.setBold(value.cellFont().bold());
 `
 
-### CellStyleFormat
+## CellStyleFormat
 - horizontalAlignment
 
 对齐方式，使用POI中的枚举HorizontalAlignment设置
