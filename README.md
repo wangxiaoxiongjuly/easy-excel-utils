@@ -1,5 +1,5 @@
 # easy-excel-utils
-基于阿里easyExcel包装的工具类，poi版本3.17
+基于阿里easyExcel包装的工具类，poi版本3.17，主要简化easyExcel的web代码，增加一部分样式的定制操作
 
 ## 模块介绍
 - easy-excel-util #工具类依赖#
@@ -28,3 +28,44 @@ my-web中 EasyExcelUtilController
 List<ExportTestModel> list = ExcelUtil.readExcel(files.get(0),ExportTestModel.class);
 `
 
+#### CellFontFormat
+
+- fontName 
+
+字体名称，直接翻译沉POI接口Font中的字体选择，String类型
+
+- fontHeightInPoints
+ 
+字号大小，short类型
+
+- fontColor 
+
+字体颜色，POI,POI提供枚举中的IndexedColors
+ 
+- bold 
+
+是否加粗，默认false,类型boolean
+
+关键代码：
+
+`
+Font font = sheet.getWorkbook().createFont();
+font.setFontName(value.cellFont().fontName());
+font.setColor(value.cellFont().fontColor().index);
+font.setFontHeightInPoints(value.cellFont().fontHeightInPoints());
+font.setBold(value.cellFont().bold());
+`
+
+#### CellStyleFormat
+- horizontalAlignment
+
+对齐方式，使用POI中的枚举HorizontalAlignment设置
+
+- fillBackgroundColor
+
+背景颜色,使用POI中的枚举IndexedColors设置
+
+`
+style.setFillForegroundColor(value.fillBackgroundColor().index);
+style.setAlignment(value.horizontalalignment());
+`

@@ -14,7 +14,7 @@ public @interface CellStyleFormat {
      * 水平居中方式 默认左居中
      * @see HorizontalAlignment
      */
-    HorizontalAlignment horizontalalignment() default HorizontalAlignment.LEFT;
+    HorizontalAlignment horizontalAlignment() default HorizontalAlignment.LEFT;
 
     /**
      * 字体设置

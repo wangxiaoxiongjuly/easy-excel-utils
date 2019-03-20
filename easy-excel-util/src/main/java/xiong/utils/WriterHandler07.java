@@ -110,7 +110,7 @@ public class WriterHandler07<T extends Class<? extends BaseRowModel>> implements
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         style.setBorderTop(BorderStyle.THIN);
-        style.setAlignment(value.horizontalalignment());
+        style.setAlignment(value.horizontalAlignment());
 
         // 生成一个字体
         Font font = sheet.getWorkbook().createFont();
