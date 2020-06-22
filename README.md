@@ -43,24 +43,11 @@ List[] result = ExcelUtil.readExcel(files.get(0), ExportTestModel.class, ExportT
 导出sheet名称注解
 
 `
-
-/**
- * @Data可以改为封装方法，不影响sheet名称
- */
 @SheetName("sheet名称")
 @Data
 public class ExportTestModel {
     @ExcelProperty(index = 0 ,value = "标题")
     private String title;
-
-    public ExportTestModel(Integer id) {
-        this.title = "标题"+id;
-    }
-
-    /**
-     * 无参构造函数是导入的必要条件
-     */
-    public ExportTestModel() {}
 }
 `
 
