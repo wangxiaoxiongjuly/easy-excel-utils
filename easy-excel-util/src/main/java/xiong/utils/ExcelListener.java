@@ -9,15 +9,18 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExcelListener extends AnalysisEventListener {
+/**
+ * @author wangxiaoxiong
+ */
+public class ExcelListener<T> extends AnalysisEventListener<T> {
 
-    private List<Object> dataList = new ArrayList<>();
+    private final List<Object> dataList = new ArrayList<>();
 
     /**
      * 通过 AnalysisContext 对象还可以获取当前 sheet，当前行等数据
      */
     @Override
-    public void invoke(Object object, AnalysisContext context) {
+    public void invoke(T object, AnalysisContext context) {
         if(!checkObjAllFieldsIsNull(object)) {
             dataList.add(object);
         }
@@ -55,7 +58,7 @@ public class ExcelListener extends AnalysisEventListener {
         return true;
     }
 
-    public List<Object> getDataList() {
+    public List<?> getDataList() {
         return dataList;
     }
 }

@@ -13,7 +13,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>easyexcel</artifactId>
-            <version>1.1.2-beta5</version>
+            <version>2.2.5</version>
         </dependency>
 
         <!-- Spring Boot Web 依赖,如果是单独访问HTML,那么请把它打开 -->

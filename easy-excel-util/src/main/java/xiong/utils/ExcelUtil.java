@@ -1,11 +1,12 @@
 package xiong.utils;
 
-import com.alibaba.excel.EasyExcelFactory;
+import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.metadata.BaseRowModel;
-import com.alibaba.excel.metadata.Sheet;
+import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.excel.write.metadata.WriteSheet;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 import xiong.exception.ExcelException;
 
@@ -21,126 +22,180 @@ import java.util.List;
  * 基于easyExcel的开源框架，poi版本3.17
  * BeanCopy ExcelException 属于自定义数据，属于可自定义依赖
  * 工具类尽可能还是需要减少对其他java的包的依赖
+ *
  * @author wenxuan.wang
  */
 public class ExcelUtil {
     /**
      * 私有化构造方法
      */
-    private ExcelUtil(){}
+    private ExcelUtil() {
+    }
+
+    /**
+     * 读取 Excel(多个 sheet)
+     */
+    public static <T> List<T> readExcel(ExcelReader reader, Class<T> rowModel, int sheetCount) {
+        if (reader == null) {
+            return new ArrayList<>();
+        }
+        List<ReadSheet> readSheetList = new ArrayList<>();
+        ExcelListener<T> excelListener = new ExcelListener<>();
+        ReadSheet readSheet = EasyExcel.readSheet(sheetCount)
+                .head(rowModel)
+                .registerReadListener(excelListener)
+                .build();
+        readSheetList.add(readSheet);
+        reader.read(readSheetList);
+        return getExtendsBeanList(excelListener.getDataList(), rowModel);
+    }
 
     /**
      * 读取 Excel(多个 sheet)
      * 将多sheet合并成一个list数据集，通过自定义ExcelReader继承AnalysisEventListener
      * 重写invoke doAfterAllAnalysed方法
      * getExtendsBeanList 主要是做Bean的属性拷贝 ，可以通过ExcelReader中添加的数据集直接获取
+     *
      * @param excel    文件
-     * @param rowModel 实体类映射，继承 BaseRowModel 类
-     * @return Excel 数据 list
+     * @param rowModel 实体类映射
      */
-    public static <T extends BaseRowModel> List<T> readExcel(MultipartFile excel,Class<T>  rowModel) throws ExcelException {
-        ExcelListener excelListener = new ExcelListener();
-        ExcelReader reader = getReader(excel, excelListener);
+    private static List[] readExcel(MultipartFile excel, Integer sheetNo, Class<?>[] rowModel) throws ExcelException {
+        ExcelReader reader = getReader(excel);
+        if (reader == null) {
+            return new ArrayList[rowModel.length];
+        }
+        List[] result = new ArrayList[rowModel.length];
+        for (int sheetCount = 0; sheetCount < rowModel.length; sheetCount++) {
+            if (sheetNo != null && sheetNo != sheetCount) {
+                continue;
+            }
+            result[sheetCount].addAll(readExcel(reader, rowModel[sheetCount], sheetCount));
+        }
+        return result;
+    }
+
+    /**
+     * 读取 Excel(多个 sheet)
+     * 将多sheet合并成一个list数据集，通过自定义ExcelReader继承AnalysisEventListener
+     * 重写invoke doAfterAllAnalysed方法
+     * getExtendsBeanList 主要是做Bean的属性拷贝 ，可以通过ExcelReader中添加的数据集直接获取
+     *
+     * @param excel    文件
+     * @param rowModel 实体类映射
+     */
+    public static List[] readExcel(MultipartFile excel, Class<?>... rowModel) throws ExcelException {
+        ExcelReader reader = getReader(excel);
+        if (reader == null) {
+            return new ArrayList[rowModel.length];
+        }
+        List[] result = new ArrayList[rowModel.length];
+        for (int sheetCount = 0; sheetCount < rowModel.length; sheetCount++) {
+            result[sheetCount] = new ArrayList<>(readExcel(reader, rowModel[sheetCount], sheetCount));
+        }
+        return result;
+    }
+
+    /**
+     * 读取 Excel(单个 sheet)
+     * 将多sheet合并成一个list数据集，通过自定义ExcelReader继承AnalysisEventListener
+     * 重写invoke doAfterAllAnalysed方法
+     * getExtendsBeanList 主要是做Bean的属性拷贝 ，可以通过ExcelReader中添加的数据集直接获取
+     */
+    public static <T> List<T> readFirstSheetExcel(MultipartFile excel, Class<T> rowType) throws ExcelException {
+        ExcelReader reader = getReader(excel);
         if (reader == null) {
             return new ArrayList<>();
         }
-        for (Sheet sheet : reader.getSheets()) {
-            sheet.setClazz(rowModel);
-            reader.read(sheet);
-        }
-        return getExtendsBeanList(excelListener.getDataList(),rowModel);
+        return readExcel(reader, rowType, 1);
     }
 
     /**
      * 读取某个 sheet 的 Excel
+     *
      * @param excel    文件
-     * @param rowModel 实体类映射，继承 BaseRowModel 类
+     * @param rowModel 实体类映射
      * @param sheetNo  sheet 的序号 从1开始
      * @return Excel 数据 list
      */
-    public static <T extends BaseRowModel> List<T> readExcel(MultipartFile excel, Class<T>  rowModel, int sheetNo)  throws ExcelException{
-        return readExcel(excel, rowModel, sheetNo, 1);
-    }
-
-    /**
-     * 读取某个 sheet 的 Excel
-     * @param excel       文件
-     * @param rowModel    实体类映射，继承 BaseRowModel 类
-     * @param sheetNo     sheet 的序号 从1开始
-     * @param headLineNum 表头行数，默认为1
-     * @return Excel 数据 list
-     */
-    public static <T extends BaseRowModel> List<T> readExcel(MultipartFile excel, Class<T>  rowModel, int sheetNo,
-                                         int headLineNum) throws ExcelException {
-        ExcelListener excelListener = new ExcelListener();
-        ExcelReader reader = getReader(excel, excelListener);
-        if (reader == null) {
-            return new ArrayList<>();
-        }
-        reader.read(new Sheet(sheetNo, headLineNum, rowModel));
-        return getExtendsBeanList(excelListener.getDataList(),rowModel);
+    public static <T> List readExcel(MultipartFile excel, Class<T> rowModel, int sheetNo) throws ExcelException {
+        Class[] classes = {rowModel};
+        return ExcelUtil.readExcel(excel, sheetNo, classes)[0];
     }
 
     /**
      * 导出 Excel ：一个 sheet，带表头
      * 自定义WriterHandler 可以定制行列数据进行灵活化操作
+     *
      * @param response  HttpServletResponse
-     * @param list      数据 list，每个元素为一个 BaseRowModel
+     * @param list      数据 list
      * @param fileName  导出的文件名
      * @param sheetName 导入文件的 sheet 名
      */
-    public static <T extends BaseRowModel> void writeExcel(HttpServletResponse response, List<T> list,
-                                  String fileName, String sheetName, ExcelTypeEnum excelTypeEnum,
-                                  Class<T> classType)  throws ExcelException{
-        if(sheetName == null || "".equals(sheetName)){
+    public static <T> void writeExcel(HttpServletResponse response, List<T> list,
+                                      String fileName, String sheetName, ExcelTypeEnum excelTypeEnum) throws ExcelException {
+        if (sheetName == null || "".equals(sheetName)) {
             sheetName = "sheet1";
         }
-        if(excelTypeEnum == ExcelTypeEnum.XLSX) {
-            ExcelWriter writer = EasyExcelFactory.getWriterWithTempAndHandler(null,
-                    getOutputStream(fileName, response, excelTypeEnum), excelTypeEnum, true, new WriterHandler07<>(classType));
-            Sheet sheet = new Sheet(1, 0, classType);
-            sheet.setSheetName(sheetName);
-            try {
-                writer.write(list, sheet);
-            } finally {
-                writer.finish();
-            }
-            //其实也可以专门调03版的样式，或者直接套用
-        } else if(excelTypeEnum == ExcelTypeEnum.XLS ){
-            ExcelWriterFactory writer = new ExcelWriterFactory(getOutputStream(fileName, response,excelTypeEnum), excelTypeEnum);
-            Sheet sheet = new Sheet(1, 0, classType);
-            sheet.setSheetName(sheetName);
-            try {
-                writer.write(list, sheet);
-            } finally {
-                writer.finish();
-                writer.close();
-            }
+        if (CollectionUtils.isEmpty(list)) {
+            return;
         }
-
+        EasyExcel.write(getOutputStream(fileName, response, excelTypeEnum), list.get(0).getClass()).sheet(sheetName).doWrite(list);
     }
 
     /**
-     * 导出 Excel ：多个 sheet，带表头
-     * @param response  HttpServletResponse
-     * @param list      数据 list，每个元素为一个 BaseRowModel
-     * @param fileName  导出的文件名
-     * @param sheetName 导入文件的 sheet 名
-     * @param object    映射实体类，Excel 模型
+     * 导出 Excel ：一个 sheet，带表头
+     * 自定义WriterHandler 可以定制行列数据进行灵活化操作
+     *
+     * @param response HttpServletResponse
+     * @param list     数据 list
+     * @param fileName 导出的文件名
      */
-    public static ExcelWriterFactory writeExcelWithSheets(HttpServletResponse response, List<? extends BaseRowModel> list,
-                                                          String fileName, String sheetName, BaseRowModel object, ExcelTypeEnum excelTypeEnum) throws ExcelException {
-        ExcelWriterFactory writer = new ExcelWriterFactory(getOutputStream(fileName, response,excelTypeEnum), excelTypeEnum);
-        Sheet sheet = new Sheet(1, 0, object.getClass());
-        sheet.setSheetName(sheetName);
-        writer.write(list, sheet);
-        return writer;
+    public static <T> void writeExcel(HttpServletResponse response, List<T> list,
+                                      String fileName, ExcelTypeEnum excelTypeEnum) throws ExcelException {
+        if (CollectionUtils.isEmpty(list)) {
+            return;
+        }
+        String sheetName = list.get(0).getClass().getAnnotation(SheetName.class).value();
+        sheetName = MyStringUtils.isNotBlank(sheetName) ? sheetName : "sheet1";
+        EasyExcel.write(getOutputStream(fileName, response, excelTypeEnum), list.get(0).getClass()).sheet(sheetName).doWrite(list);
     }
+
+    /**
+     * 导出 Excel ：一个 sheet，带表头
+     * 自定义WriterHandler 可以定制行列数据进行灵活化操作
+     *
+     * @param response HttpServletResponse
+     * @param fileName 导出的文件名
+     */
+    public static void writeExcel(HttpServletResponse response, String fileName,
+                                  ExcelTypeEnum excelTypeEnum, List... lists) throws ExcelException {
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(getOutputStream(fileName, response, excelTypeEnum)).build();
+            for (int count = 0; count < lists.length; count++) {
+                if (CollectionUtils.isEmpty(lists[count])) {
+                    continue;
+                }
+                String sheetName = lists[count].get(0).getClass().getAnnotation(SheetName.class).value();
+                sheetName = MyStringUtils.isNotBlank(sheetName) ? sheetName : "sheet" + (count + 1);
+                WriteSheet writeSheet = EasyExcel.writerSheet(count, sheetName)
+                        .head(lists[count].get(0).getClass())
+                        .build();
+                excelWriter.write(lists[count], writeSheet);
+            }
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+
+    }
+
 
     /**
      * 导出文件时为Writer生成OutputStream
      */
-    private static OutputStream getOutputStream(String fileName, HttpServletResponse response, ExcelTypeEnum excelTypeEnum) throws ExcelException{
+    private static OutputStream getOutputStream(String fileName, HttpServletResponse response, ExcelTypeEnum excelTypeEnum) throws ExcelException {
         //创建本地文件
         String filePath = fileName + excelTypeEnum.getValue();
         try {
@@ -154,13 +209,12 @@ public class ExcelUtil {
 
     /**
      * 返回 ExcelReader
-     * @param excel         需要解析的 Excel 文件
-     * @param excelListener new ExcelListener()
+     *
+     * @param excel 需要解析的 Excel 文件
      */
-    private static ExcelReader getReader(MultipartFile excel,
-                                         ExcelListener excelListener) throws ExcelException{
+    public static ExcelReader getReader(MultipartFile excel) throws ExcelException {
         String fileName = excel.getOriginalFilename();
-        if (fileName == null ) {
+        if (fileName == null) {
             throw new ExcelException("文件格式错误！");
         }
         if (!fileName.toLowerCase().endsWith(ExcelTypeEnum.XLS.getValue()) && !fileName.toLowerCase().endsWith(ExcelTypeEnum.XLSX.getValue())) {
@@ -169,7 +223,7 @@ public class ExcelUtil {
         InputStream inputStream;
         try {
             inputStream = excel.getInputStream();
-            return new ExcelReader(inputStream, null, excelListener, false);
+            return EasyExcel.read(inputStream).build();
         } catch (IOException e) {
             //do something
         }
@@ -179,7 +233,8 @@ public class ExcelUtil {
     /**
      * 利用BeanCopy转换list
      */
-    public static <T extends BaseRowModel> List<T> getExtendsBeanList(List<?> list,Class<T> typeClazz){
-        return MyBeanCopy.convert(list,typeClazz);
+    public static <T> List<T> getExtendsBeanList(List<?> list, Class<T> typeClazz) {
+        return MyBeanCopy.convert(list, typeClazz);
     }
+
 }

@@ -1,5 +1,8 @@
 package xiong.exception;
 
+/**
+ * @author wangxiaoxiong
+ */
 public class ExcelException extends Exception {
     /**
      * Constructs a new exception with the specified detail message.  The
